@@ -1,11 +1,9 @@
-from flask import Flask, render_template_string, render_template, jsonify
-from flask import render_template
-from flask import json
+from flask import Flask, render_template, jsonify
 from datetime import datetime
 from urllib.request import urlopen
-import sqlite3
-                                                                                                                                       
-app = Flask(__name__)                                                                                                                  
+import json
+
+app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
@@ -20,11 +18,14 @@ def meteo():
     response = urlopen('https://samples.openweathermap.org/data/2.5/forecast?lat=0&lon=0&appid=xxx')
     raw_content = response.read()
     json_content = json.loads(raw_content.decode('utf-8'))
+
     results = []
     for list_element in json_content.get('list', []):
         dt_value = list_element.get('dt')
-        temp_day_value = list_element.get('main', {}).get('temp') - 273.15
-        results.append({'Jour': dt_value, 'temp': temp_day_value})
+        temp_kelvin = list_element.get('main', {}).get('temp')
+        temp_celsius = temp_kelvin - 273.15 if temp_kelvin else None
+        results.append({'Jour': dt_value, 'temp': temp_celsius})
+
     return jsonify(results=results)
 
 @app.route("/rapport/")
@@ -43,17 +44,15 @@ def commits_data():
     json_content = json.loads(raw_content.decode('utf-8'))
 
     results = []
-
     for commit in json_content:
         date_string = commit.get("commit", {}).get("author", {}).get("date")
         if date_string:
             date_object = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ')
-            minute = date_object.minute
-            results.append(minute)
+            results.append(date_object.minute)
 
     return jsonify(results=results)
-  
-  @app.route("/commits/")
+
+@app.route("/commits/")
 def commits():
     return render_template("commits.html")
 
